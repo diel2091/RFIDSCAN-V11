@@ -1,2 +1,0 @@
--keep class com.zebra.rfid.api3.** { *; }
--keep class com.symbol.emdk.** { *; }
