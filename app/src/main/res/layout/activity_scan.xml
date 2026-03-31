@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#121212">
+
+    <!-- Status bar -->
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Iniciando..."
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:padding="6dp"
+        android:background="#1E1E1E"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/btnRestart"/>
+
+    <!-- Restart button -->
+    <Button
+        android:id="@+id/btnRestart"
+        android:layout_width="48dp"
+        android:layout_height="0dp"
+        android:text="↺"
+        android:textSize="14sp"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#607D8B"
+        android:padding="0dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="@id/tvStatus"/>
+
+    <!-- Retry button -->
+    <Button
+        android:id="@+id/btnRetry"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:text="🔄 REINTENTAR"
+        android:backgroundTint="#FF9800"
+        android:textColor="#000000"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/tvStatus"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Stats row -->
+    <TextView
+        android:id="@+id/tvUnique"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Únicos: 0"
+        android:textColor="#00E5FF"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:padding="6dp"
+        app:layout_constraintTop_toBottomOf="@id/btnRetry"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/tvTotal"/>
+
+    <TextView
+        android:id="@+id/tvTotal"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Total: 0"
+        android:textColor="#69F0AE"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:padding="6dp"
+        android:gravity="center"
+        app:layout_constraintTop_toBottomOf="@id/btnRetry"
+        app:layout_constraintStart_toEndOf="@id/tvUnique"
+        app:layout_constraintEnd_toStartOf="@id/tvRate"/>
+
+    <TextView
+        android:id="@+id/tvRate"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Rate: 0/s"
+        android:textColor="#FF9800"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:padding="6dp"
+        android:gravity="end"
+        app:layout_constraintTop_toBottomOf="@id/btnRetry"
+        app:layout_constraintStart_toEndOf="@id/tvTotal"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Buttons row -->
+    <Button
+        android:id="@+id/btnScan"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:text="Escanear"
+        android:textSize="11sp"
+        android:textAllCaps="false"
+        android:backgroundTint="#00E5FF"
+        android:textColor="#000000"
+        android:paddingStart="2dp"
+        android:paddingEnd="2dp"
+        android:enabled="false"
+        app:layout_constraintTop_toBottomOf="@id/tvUnique"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/btnEan"/>
+
+    <Button
+        android:id="@+id/btnEan"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:text="EAN"
+        android:textSize="11sp"
+        android:textAllCaps="false"
+        android:backgroundTint="#69F0AE"
+        android:textColor="#000000"
+        android:paddingStart="2dp"
+        android:paddingEnd="2dp"
+        app:layout_constraintTop_toBottomOf="@id/tvUnique"
+        app:layout_constraintStart_toEndOf="@id/btnScan"
+        app:layout_constraintEnd_toStartOf="@id/btnClear"/>
+
+    <Button
+        android:id="@+id/btnClear"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:text="Limpiar"
+        android:textSize="11sp"
+        android:textAllCaps="false"
+        android:backgroundTint="#FF5252"
+        android:textColor="#FFFFFF"
+        android:paddingStart="2dp"
+        android:paddingEnd="2dp"
+        app:layout_constraintTop_toBottomOf="@id/tvUnique"
+        app:layout_constraintStart_toEndOf="@id/btnEan"
+        app:layout_constraintEnd_toStartOf="@id/btnExport"/>
+
+    <Button
+        android:id="@+id/btnExport"
+        android:layout_width="0dp"
+        android:layout_height="40dp"
+        android:text="CSV"
+        android:textSize="11sp"
+        android:textAllCaps="false"
+        android:backgroundTint="#7C4DFF"
+        android:textColor="#FFFFFF"
+        android:paddingStart="2dp"
+        android:paddingEnd="2dp"
+        app:layout_constraintTop_toBottomOf="@id/tvUnique"
+        app:layout_constraintStart_toEndOf="@id/btnClear"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Search box -->
+    <EditText
+        android:id="@+id/etSearch"
+        android:layout_width="0dp"
+        android:layout_height="38dp"
+        android:hint="🔍 Buscar EPC o EAN..."
+        android:textColorHint="#888888"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:background="#1E1E1E"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:inputType="text"
+        android:imeOptions="actionSearch"
+        android:singleLine="true"
+        app:layout_constraintTop_toBottomOf="@id/btnScan"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/tvSearchCount"/>
+
+    <TextView
+        android:id="@+id/tvSearchCount"
+        android:layout_width="wrap_content"
+        android:layout_height="38dp"
+        android:textColor="#888888"
+        android:textSize="11sp"
+        android:paddingEnd="8dp"
+        android:gravity="center_vertical"
+        app:layout_constraintTop_toBottomOf="@id/btnScan"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBaseline_toBaselineOf="@id/etSearch"/>
+
+    <!-- Tag list -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvTags"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:padding="4dp"
+        app:layout_constraintTop_toBottomOf="@id/etSearch"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

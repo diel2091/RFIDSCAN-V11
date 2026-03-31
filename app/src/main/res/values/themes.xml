@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.ZebraRFID" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="colorPrimary">#00E5FF</item>
+        <item name="colorPrimaryVariant">#00B2CC</item>
+        <item name="colorOnPrimary">#000000</item>
+        <item name="colorSecondary">#69F0AE</item>
+        <item name="android:windowBackground">#121212</item>
+    </style>
+</resources>
