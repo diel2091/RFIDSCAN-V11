@@ -33,14 +33,15 @@ class RfidManager @Inject constructor(
     private var readers: Readers? = null
     private var readerDevice: ReaderDevice? = null
     private var reader: RFIDReader? = null
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
  
-    // Nombre del lector confirmado en RFD123
+    // FIX: var en lugar de val — permite recrear el scope después de release()
+    private var scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+ 
     private val READER_NAME = "RFD4030-G00B700-US"
  
     fun initialize() {
+        if (!scope.isActive) scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         scope.launch {
-            // Limpiar sesión SDK anterior al iniciar — fix para reinstalación / reinicio PDT
             try {
                 reader?.Events?.removeEventsListener(this@RfidManager)
                 reader?.disconnect()
@@ -61,32 +62,25 @@ class RfidManager @Inject constructor(
             reader = null
             delay(500)
  
-            // Intentar los 4 transportes igual que el ejemplo oficial de Zebra
             readers = Readers(context, ENUM_TRANSPORT.BLUETOOTH)
             var list = readers?.GetAvailableRFIDReaderList()
             Log.i(TAG, "BLUETOOTH: ${list?.size ?: 0} readers")
             list?.forEach { Log.i(TAG, "  -> ${it.name}") }
  
             if (list.isNullOrEmpty()) {
-                Log.i(TAG, "Probando SERVICE_SERIAL...")
                 readers?.setTransport(ENUM_TRANSPORT.SERVICE_SERIAL)
                 list = readers?.GetAvailableRFIDReaderList()
                 Log.i(TAG, "SERVICE_SERIAL: ${list?.size ?: 0} readers")
             }
- 
             if (list.isNullOrEmpty()) {
-                Log.i(TAG, "Probando SERVICE_USB...")
                 readers?.setTransport(ENUM_TRANSPORT.SERVICE_USB)
                 list = readers?.GetAvailableRFIDReaderList()
                 Log.i(TAG, "SERVICE_USB: ${list?.size ?: 0} readers")
             }
- 
             if (list.isNullOrEmpty()) {
-                Log.i(TAG, "Probando ALL...")
                 readers?.setTransport(ENUM_TRANSPORT.ALL)
                 list = readers?.GetAvailableRFIDReaderList()
                 Log.i(TAG, "ALL: ${list?.size ?: 0} readers")
-                list?.forEach { Log.i(TAG, "  -> ${it.name}") }
             }
  
             if (list.isNullOrEmpty()) {
@@ -96,12 +90,10 @@ class RfidManager @Inject constructor(
                 return
             }
  
-            // Buscar por nombre exacto, si no tomar el primero
             readerDevice = list.firstOrNull { it.name.startsWith(READER_NAME) } ?: list[0]
             Log.i(TAG, "Usando reader: ${readerDevice?.name}")
  
             reader = readerDevice!!.getRFIDReader()
- 
             if (reader == null) {
                 _connectionState.value = ConnectionState.Error("getRFIDReader() devolvió null")
                 return
@@ -117,8 +109,6 @@ class RfidManager @Inject constructor(
  
     private fun doConnect() {
         try {
-            // Siempre desconectar limpio antes de conectar — evita estado fantasma
-            // que ocurre al reinstalar o reiniciar la PDT
             if (reader?.isConnected == true) {
                 Log.i(TAG, "Desconectando sesión anterior...")
                 try {
@@ -170,16 +160,14 @@ class RfidManager @Inject constructor(
             reader!!.Config.Antennas.setAntennaRfConfig(1, antennaConfig)
  
             val singControl = reader!!.Config.Antennas.getSingulationControl(1)
-            singControl.setSession(SESSION.SESSION_S0)
+            singControl.setSession(SESSION.SESSION_S1)
             singControl.Action.setInventoryState(INVENTORY_STATE.INVENTORY_STATE_A)
             singControl.Action.setSLFlag(SL_FLAG.SL_ALL)
             reader!!.Config.Antennas.setSingulationControl(1, singControl)
  
             reader!!.Actions.PreFilters.deleteAll()
  
-            // Silenciar beep del RFD4030
             try {
-                val beeperConfig = reader!!.Config.beeperVolume
                 reader!!.Config.beeperVolume = BEEPER_VOLUME.QUIET_BEEP
             } catch (e: Exception) {
                 Log.w(TAG, "No se pudo configurar beeper: ${e.message}")
@@ -193,7 +181,9 @@ class RfidManager @Inject constructor(
  
     override fun eventReadNotify(e: RfidReadEvents?) {
         try {
-            val tags = reader?.Actions?.getReadTags(100)
+            // FIX: aumentar buffer de 100 a 500 tags por evento
+            // Con alto volumen, 100 dejaba cola acumulada que saturaba memoria
+            val tags = reader?.Actions?.getReadTags(500)
             tags?.forEach { tag ->
                 val epc = tag?.tagID
                 if (!epc.isNullOrBlank()) repository.onEpcReceived(epc)
@@ -218,13 +208,18 @@ class RfidManager @Inject constructor(
             STATUS_EVENT_TYPE.DISCONNECTION_EVENT -> {
                 _connectionState.value = ConnectionState.Disconnected
                 reader = null
-                scope.launch { delay(3000); createAndConnect() }
+                if (scope.isActive) {
+                    scope.launch { delay(3000); createAndConnect() }
+                }
             }
             else -> {}
         }
     }
  
-    fun retry() { scope.launch { createAndConnect() } }
+    fun retry() {
+        if (!scope.isActive) scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        scope.launch { createAndConnect() }
+    }
  
     fun startInventory(): Boolean = try {
         reader?.Actions?.Inventory?.perform(); true
@@ -251,4 +246,3 @@ class RfidManager @Inject constructor(
         }
     }
 }
- 
