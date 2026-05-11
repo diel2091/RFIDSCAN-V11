@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TagDao {
+
     @Query("SELECT * FROM tags ORDER BY firstSeen DESC")
     fun getAllTags(): Flow<List<TagEntry>>
 
@@ -19,4 +20,17 @@ interface TagDao {
 
     @Query("DELETE FROM tags")
     suspend fun deleteAll()
+
+    // FIX: batch upsert en una sola transacción
+    // Mucho más rápido que insertar tag por tag individualmente
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertBatch(tags: List<TagEntry>)
+
+    @Transaction
+    suspend fun insertOrUpdateBatch(tags: List<TagEntry>) {
+        // Chunk de 200 para no saturar SQLite con queries enormes
+        tags.chunked(200).forEach { chunk ->
+            insertBatch(chunk)
+        }
+    }
 }
