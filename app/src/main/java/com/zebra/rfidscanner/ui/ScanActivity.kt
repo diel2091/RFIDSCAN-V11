@@ -67,6 +67,7 @@ class ScanActivity : AppCompatActivity() {
  
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         binding = ActivityScanBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setupRecyclerView()
@@ -363,4 +364,3 @@ class ScanActivity : AppCompatActivity() {
         if (isScanning) viewModel.toggleScan()
     }
 }
- 
