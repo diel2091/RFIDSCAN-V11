@@ -169,29 +169,47 @@ class ScanActivity : AppCompatActivity() {
             Toast.makeText(this, "No hay tags para exportar", Toast.LENGTH_SHORT).show()
             return
         }
- 
-        // Preparar contenido CSV
+
         val ts = CsvExporter.timestamp()
-        if (eanMode) {
-            pendingCsvContent = CsvExporter.buildEanCsv(tags)
-            pendingCsvName = "rfid_ean_$ts.csv"
-        } else {
-            pendingCsvContent = CsvExporter.buildEpcCsv(tags)
-            pendingCsvName = "rfid_epc_$ts.csv"
-        }
- 
-        // Mostrar opciones
-        val options = arrayOf("📁 Guardar en PDT", "🌐 Exportar a carpeta de red")
+
+        // Paso 1: elegir formato
+        val formats = arrayOf(
+            "📋 EPC completo",
+            "🏷️ EAN detallado (EPC + GTIN + EAN + Serial)",
+            "📊 EAN + Cantidad (agrupado)"
+        )
         AlertDialog.Builder(this)
-            .setTitle("Exportar CSV")
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> saveLauncher.launch(pendingCsvName)
-                    1 -> exportToNetwork()
+            .setTitle("Seleccionar formato")
+            .setItems(formats) { _, format ->
+                when (format) {
+                    0 -> {
+                        pendingCsvContent = CsvExporter.buildEpcCsv(tags)
+                        pendingCsvName = "rfid_epc_$ts.csv"
+                    }
+                    1 -> {
+                        pendingCsvContent = CsvExporter.buildEanCsv(tags)
+                        pendingCsvName = "rfid_ean_$ts.csv"
+                    }
+                    2 -> {
+                        pendingCsvContent = CsvExporter.buildEanQtyCsv(tags)
+                        pendingCsvName = "rfid_ean_qty_$ts.csv"
+                    }
                 }
+                // Paso 2: elegir destino
+                val destinations = arrayOf("📁 Guardar en PDT", "🌐 Exportar a carpeta de red")
+                AlertDialog.Builder(this)
+                    .setTitle("Exportar a")
+                    .setItems(destinations) { _, dest ->
+                        when (dest) {
+                            0 -> saveLauncher.launch(pendingCsvName)
+                            1 -> exportToNetwork()
+                        }
+                    }
+                    .show()
             }
             .show()
     }
+
  
     private fun exportToNetwork() {
         val config = SmbExporter.loadConfig(this)
