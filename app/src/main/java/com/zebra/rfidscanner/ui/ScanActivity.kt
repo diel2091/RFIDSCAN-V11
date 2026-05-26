@@ -42,6 +42,8 @@ class ScanActivity : AppCompatActivity() {
  
     private var pendingCsvContent: String = ""
     private var pendingCsvName: String = ""
+    private var pendingXlsxBytes: ByteArray? = null
+    private var isXlsxExport: Boolean = false
  
     private val saveLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("text/csv")
@@ -58,6 +60,24 @@ class ScanActivity : AppCompatActivity() {
         }
     }
  
+    // Launcher para guardar XLSX en PDT
+    private val saveXlsxLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    ) { uri ->
+        if (uri != null) {
+            try {
+                contentResolver.openOutputStream(uri)?.use {
+                    it.write(pendingXlsxBytes ?: return@use)
+                }
+                Toast.makeText(this, "✓ Exportado", Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { perms ->
@@ -174,13 +194,14 @@ class ScanActivity : AppCompatActivity() {
 
         // Paso 1: elegir formato
         val formats = arrayOf(
-            "📋 EPC completo",
-            "🏷️ EAN detallado (EPC + GTIN + EAN + Serial)",
-            "📊 EAN + Cantidad (agrupado)"
+            "📋 EPC completo (.csv)",
+            "🏷️ EAN detallado (.csv)",
+            "📊 EAN + Cantidad — Excel (.xlsx)"
         )
         AlertDialog.Builder(this)
             .setTitle("Seleccionar formato")
             .setItems(formats) { _, format ->
+                isXlsxExport = false
                 when (format) {
                     0 -> {
                         pendingCsvContent = CsvExporter.buildEpcCsv(tags)
@@ -191,8 +212,10 @@ class ScanActivity : AppCompatActivity() {
                         pendingCsvName = "rfid_ean_$ts.csv"
                     }
                     2 -> {
-                        pendingCsvContent = CsvExporter.buildEanQtyCsv(tags)
-                        pendingCsvName = "rfid_ean_qty_$ts.csv"
+                        // XLSX: solo EANs válidos, omite EPCs sin EAN
+                        pendingXlsxBytes = CsvExporter.buildEanQtyXlsx(tags)
+                        pendingCsvName = "rfid_ean_qty_$ts.xlsx"
+                        isXlsxExport = true
                     }
                 }
                 // Paso 2: elegir destino
@@ -201,7 +224,13 @@ class ScanActivity : AppCompatActivity() {
                     .setTitle("Exportar a")
                     .setItems(destinations) { _, dest ->
                         when (dest) {
-                            0 -> saveLauncher.launch(pendingCsvName)
+                            0 -> {
+                                if (isXlsxExport) {
+                                    saveXlsxLauncher.launch(pendingCsvName)
+                                } else {
+                                    saveLauncher.launch(pendingCsvName)
+                                }
+                            }
                             1 -> exportToNetwork()
                         }
                     }
@@ -233,7 +262,11 @@ class ScanActivity : AppCompatActivity() {
  
         lifecycleScope.launch {
             val error = withContext(Dispatchers.IO) {
-                SmbExporter.upload(config, pendingCsvName, pendingCsvContent)
+                if (isXlsxExport) {
+                        SmbExporter.uploadBytes(config, pendingCsvName, pendingXlsxBytes ?: ByteArray(0))
+                    } else {
+                        SmbExporter.upload(config, pendingCsvName, pendingCsvContent)
+                    }
             }
             progress.dismiss()
             if (error == null) {
