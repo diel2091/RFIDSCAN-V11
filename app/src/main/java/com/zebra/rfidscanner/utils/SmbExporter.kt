@@ -44,46 +44,58 @@ object SmbExporter {
         val user = p.getString(KEY_USER, "") ?: ""
         if (host.isEmpty() || user.isEmpty()) return null
         return SmbConfig(
-            host   = host,
-            share  = share,
-            user   = user,
+            host     = host,
+            share    = share,
+            user     = user,
             password = p.getString(KEY_PASS, "") ?: "",
-            domain = p.getString(KEY_DOMAIN, "") ?: ""
+            domain   = p.getString(KEY_DOMAIN, "") ?: ""
         )
     }
 
-    /**
-     * Sube el CSV a la carpeta de red Windows via SMB.
-     * Debe llamarse desde un hilo de fondo (coroutine Dispatchers.IO).
-     * Retorna null si OK, o mensaje de error si falla.
-     */
+    private fun buildContext(config: SmbConfig): CIFSContext {
+        val props = Properties().apply {
+            setProperty("jcifs.smb.client.enableSMB2", "true")
+            setProperty("jcifs.smb.client.disableSMB1", "false")
+            setProperty("jcifs.resolveOrder", "DNS")
+        }
+        return BaseContext(PropertyConfiguration(props))
+            .withCredentials(
+                NtlmPasswordAuthenticator(config.domain, config.user, config.password)
+            )
+    }
+
+    private fun buildUrl(config: SmbConfig, fileName: String): String {
+        val share = config.share.trimStart('\\', '/').trimEnd('\\', '/')
+        return "smb://${config.host}/$share/$fileName"
+    }
+
+    // Subir CSV (texto)
     fun upload(config: SmbConfig, fileName: String, csvContent: String): String? {
         return try {
-            val props = Properties().apply {
-                setProperty("jcifs.smb.client.enableSMB2", "true")
-                setProperty("jcifs.smb.client.disableSMB1", "false")
-                setProperty("jcifs.resolveOrder", "DNS")
-            }
-
-            val cifsContext: CIFSContext = BaseContext(PropertyConfiguration(props))
-                .withCredentials(
-                    NtlmPasswordAuthenticator(
-                        config.domain,
-                        config.user,
-                        config.password
-                    )
-                )
-
-            // Construir URL SMB: smb://host/share/filename
-            val share = config.share.trimStart('\\', '/').trimEnd('\\', '/')
-            val url = "smb://${config.host}/$share/$fileName"
-
+            val cifsContext = buildContext(config)
+            val url = buildUrl(config, fileName)
             SmbFile(url, cifsContext).use { smbFile ->
                 SmbFileOutputStream(smbFile).use { out ->
                     out.write(csvContent.toByteArray(Charsets.UTF_8))
                 }
             }
-            null // éxito
+            null
+        } catch (e: Exception) {
+            e.message ?: "Error desconocido"
+        }
+    }
+
+    // Subir XLSX (bytes) — mismo mecanismo pero recibe ByteArray
+    fun uploadBytes(config: SmbConfig, fileName: String, bytes: ByteArray): String? {
+        return try {
+            val cifsContext = buildContext(config)
+            val url = buildUrl(config, fileName)
+            SmbFile(url, cifsContext).use { smbFile ->
+                SmbFileOutputStream(smbFile).use { out ->
+                    out.write(bytes)
+                }
+            }
+            null
         } catch (e: Exception) {
             e.message ?: "Error desconocido"
         }
