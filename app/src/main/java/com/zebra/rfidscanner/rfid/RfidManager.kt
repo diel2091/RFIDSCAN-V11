@@ -160,7 +160,10 @@ class RfidManager @Inject constructor(
             reader!!.Config.Antennas.setAntennaRfConfig(1, antennaConfig)
  
             val singControl = reader!!.Config.Antennas.getSingulationControl(1)
-            singControl.setSession(SESSION.SESSION_S1)
+            // SESSION_S0: no guarda estado en las etiquetas
+            // Siempre re-lee todas las etiquetas en cada disparo
+            // SESSION_S1 causaba que después de limpiar no se pudieran re-leer
+            singControl.setSession(SESSION.SESSION_S0)
             singControl.Action.setInventoryState(INVENTORY_STATE.INVENTORY_STATE_A)
             singControl.Action.setSLFlag(SL_FLAG.SL_ALL)
             reader!!.Config.Antennas.setSingulationControl(1, singControl)
@@ -229,26 +232,14 @@ class RfidManager @Inject constructor(
         reader?.Actions?.Inventory?.stop(); true
     } catch (e: Exception) { Log.e(TAG, "stopInventory error", e); false }
 
-    // Resetea el estado interno del lector para que vuelva a leer etiquetas ya vistas
-    // SESSION_S1 guarda estado en el lector — hay que hacer purge para limpiar
+    // Con SESSION_S0 no es necesario resetear el estado del lector
+    // Las etiquetas siempre se re-leen en cada disparo
     fun resetReaderState() {
-        scope.launch {
-            try {
-                reader?.Actions?.Inventory?.stop()
-                delay(200)
-                // Purge: cambia sesión a S0 y vuelve a S1 para limpiar estado interno
-                val singControl = reader!!.Config.Antennas.getSingulationControl(1)
-                singControl.setSession(SESSION.SESSION_S0)
-                reader!!.Config.Antennas.setSingulationControl(1, singControl)
-                delay(100)
-                singControl.setSession(SESSION.SESSION_S1)
-                singControl.Action.setInventoryState(INVENTORY_STATE.INVENTORY_STATE_A)
-                singControl.Action.setSLFlag(SL_FLAG.SL_ALL)
-                reader!!.Config.Antennas.setSingulationControl(1, singControl)
-                Log.i(TAG, "Reader state reset OK")
-            } catch (e: Exception) {
-                Log.w(TAG, "resetReaderState error: ${e.message}")
-            }
+        try {
+            reader?.Actions?.Inventory?.stop()
+            Log.i(TAG, "Reader state reset OK")
+        } catch (e: Exception) {
+            Log.w(TAG, "resetReaderState error: ${e.message}")
         }
     }
  
