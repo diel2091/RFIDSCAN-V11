@@ -57,9 +57,13 @@ class RfidRepository @Inject constructor(private val tagDao: TagDao) {
         val isNew = tagMap.putIfAbsent(epc, 1) == null
         if (!isNew) tagMap.merge(epc, 1, Int::plus)
 
-        // FIX: operaciones atómicas — sin bloqueo entre hilos
-        _totalReadsAtomic.incrementAndGet()
+        // Contadores atómicos — sin bloqueo entre hilos
+        val total = _totalReadsAtomic.incrementAndGet()
         if (isNew) _tagCountAtomic.incrementAndGet()
+
+        // FIX TOTAL: actualizar totalReads en UI siempre que haya cambio visible
+        // No dentro del throttle — así Total siempre es mayor o igual que Únicos
+        _totalReads.value = total
 
         // Rate
         readsInWindow++
@@ -71,15 +75,11 @@ class RfidRepository @Inject constructor(private val tagDao: TagDao) {
             windowStart     = now
         }
 
-        // FIX: throttle con AtomicLong — compare-and-set sin synchronized
+        // Throttle para actualizar lista y contador Únicos en UI
         val last = lastUiUpdate.get()
         if (now - last >= UI_THROTTLE_MS && lastUiUpdate.compareAndSet(last, now)) {
-            // Actualizar contadores de UI
-            _tagCount.value   = _tagCountAtomic.get()
-            _totalReads.value = _totalReadsAtomic.get()
+            _tagCount.value = _tagCountAtomic.get()
 
-            // FIX: snapshot limitado a MAX_VISIBLE_TAGS
-            // No tiene sentido pasar 100,000 objetos al RecyclerView
             val snapshot = tagMap.entries
                 .take(MAX_VISIBLE_TAGS)
                 .map { (epc, count) -> TagEntry(epc = epc, readCount = count) }
