@@ -4,11 +4,11 @@ plugins {
     id 'kotlin-kapt'
     id 'com.google.dagger.hilt.android'
 }
- 
+
 android {
     namespace 'com.zebra.rfidscanner'
     compileSdk 34
- 
+
     defaultConfig {
         applicationId "com.zebra.rfidscanner"
         minSdk 26
@@ -16,7 +16,7 @@ android {
         versionCode 1
         versionName "1.0.0"
     }
- 
+
     buildTypes {
         release {
             minifyEnabled false
@@ -24,16 +24,16 @@ android {
         }
         debug { debuggable true }
     }
- 
+
     buildFeatures { viewBinding true }
- 
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
- 
+
     kotlinOptions { jvmTarget = '17' }
- 
+
     packagingOptions {
         resources {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
@@ -42,14 +42,15 @@ android {
             excludes += '/META-INF/LICENSE.txt'
             excludes += '/META-INF/NOTICE'
             excludes += '/META-INF/NOTICE.txt'
+            excludes += '/META-INF/LICENSE.md'
+            excludes += '/META-INF/NOTICE.md'
         }
     }
 }
- 
+
 dependencies {
-    // Zebra RFID SDK 2.0.5.238 - archivos locales
     implementation fileTree(dir: 'libs', include: ['*.aar', '*.jar'])
- 
+
     implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.22'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
     implementation 'androidx.core:core-ktx:1.12.0'
@@ -66,9 +67,12 @@ dependencies {
     implementation 'androidx.room:room-ktx:2.6.1'
     kapt 'androidx.room:room-compiler:2.6.1'
     implementation 'com.opencsv:opencsv:5.9'
- 
+
     // SMB - Exportar a carpeta de red Windows
     implementation 'eu.agno3.jcifs:jcifs-ng:2.1.9'
+
+    // XLSX - Exportar a Excel
+    implementation 'org.apache.poi:poi-ooxml:5.2.3'
 }
- 
+
 kapt { correctErrorTypes true }

@@ -54,7 +54,11 @@ class ScanViewModel @Inject constructor(
         return isScanning
     }
  
-    fun clearAll() = viewModelScope.launch { repository.clearAll() }
+    fun clearAll() = viewModelScope.launch {
+        repository.clearAll()
+        // Resetear estado interno del lector para que vuelva a leer etiquetas ya vistas
+        rfidManager.resetReaderState()
+    }
     fun getTagsForExport(): List<String> = repository.getTagList()
     fun release() = rfidManager.release()
  
